@@ -262,8 +262,16 @@ function dailyMessage() {
   // Logger.log(date_tomorrow);
   let cur = 0;
   Logger.log(events);
+  if (dateStringToUnix(events[cur][1]) < dateStringToUnix(date_today)) {
+    msg += "%0A%0AYou have OVERDUE items:";
+    while (dateStringToUnix(events[cur][1]) < dateStringToUnix(date_today)) {
+      msg += "%0A- ";
+      msg += events[cur][0];
+      cur += 1;
+    }
+  } else msg += "%0A%0AYou have no overdue items! Yay!";
   if (events[cur][1] == date_today) {
-    msg += "Here's what's due today:%0A";
+    msg += "%0A%0AHere's what's due today:%0A";
     while (1) {
       if (events[cur][1] == date_today) {
         msg += "%0A- ";
@@ -351,6 +359,14 @@ function doPost(e) {
       main.getRange(cur,15).setValue("");
       sendText(userId, "Done!");
     }
+    else if (returned.indexOf("finished") != -1) {
+      var todo = returned.slice(8);
+      let cur = 2;
+      while (main.getRange(cur,20).getValue() != todo) cur += 1;
+      main.getRange(cur, 20).setValue("");
+      main.getRange(cur, 21).setValue("");
+      sendText(userId, "Done!");
+    }
     else {
       editMessage(userId, data.callback_query.message.message_id, "What are you doing? (Currently doing: " + returned + ")", getKeyboard());
 
@@ -430,6 +446,18 @@ function doPost(e) {
         main.getRange(1, 24).setValue(1);
         sendText(userId, "Enter due date (MM/DD/YYYY): ");
       }
+    }
+    else if (/\/markcomplete/.test(text)) {
+      var todos = main.getRange(2, 20, main.getLastRow()-1).getValues();
+      let keyboard = {
+        "inline_keyboard": [
+        ]
+      };
+      for (i=0; i<todos.length; i++) {
+        if (todos[i][0] == "") continue;
+        keyboard["inline_keyboard"].push([{"text":todos[i][0], "callback_data":"finished"+todos[i][0]}]);
+      }
+      sendMessage(userId, "What would you like to mark as complete?", keyboard);
     }
     else {
       if (main.getRange(1, 10).getValue() == '1') {
